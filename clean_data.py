@@ -45,17 +45,20 @@ def getPulls(startBalance):
     return pulls
 
 def getStatus(item):
-    status = list(filter(lambda x: x['category'] == 'limited', item))
-    if status: return 1 
-    else: return 0
+    return 1 if item['category'] == 'limited' else 0
 
-def getRewardState(item, action):
-    if (action == 'skipped' or not item): return 0
-    else:
-        print("item", item[-1])
-    # item_list = list(filter(lambda x: x['status'] == 'win', item))
-    # if item_list:
-    #     print("status", item_list)
+def getCarryState(reward_state, previous=None):
+    match reward_state:
+        case "lose":
+            return "guaranteed"
+        case "guaranteed" | "win":
+            return "50/50"
+        case "N/A":
+            return previous[-1] if previous else "50/50"
+        case _:
+            return "50/50"
+
+    
 
 data_list = []
 def cleanData():
@@ -65,12 +68,20 @@ def cleanData():
             for banner, details in histories.items():
                 expenses = details['expenses']
                 action = details['action']
-                status = getStatus(details['item'])
-                getRewardState(details['item'], action)
-                data_list.append([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']), 
-                                    banner, ban_info[banner][0], ban_info[banner][1], ban_info[banner][2], ban_info[banner][3],
-                                    action, status,
-                                    ])
+                banner_meta = ban_info[banner]
+
+                items = details.get('item', [])
+                if not items:
+                    data_list.append([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']),
+                                    banner, *banner_meta, 
+                                    action, 0, 
+                                    'N/A', getCarryState('N/A', data_list[-1] if data_list else None) ])
+                else:                    
+                    data_list.extend([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']), 
+                                        banner, *banner_meta,
+                                        action, getStatus(item), 
+                                        item['status'], getCarryState(item['status'], data_list[-1])] for item in items
+                                        )
                 
 
 cleanData()

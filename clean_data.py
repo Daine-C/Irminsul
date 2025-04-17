@@ -54,13 +54,45 @@ def getCarryState(reward_state, previous=None):
         case "guaranteed" | "win":
             return "50/50"
         case "N/A":
-            return previous[-1] if previous else "50/50"
+            return previous[13] if previous else "50/50"
         case _:
             return "50/50"
 
+def getTotPullSpent(extraPity, pulls):
+    total_pulls = extraPity + pulls
+    return total_pulls
+    
+def getCW(state, pulls):
+    print(state, data_list[-1][6], data_list[-1][1])
+    if state == 'lose':
+        lose_pulls[0] = pulls
+        return 'N/A'
+    
+    if pulls == 0 and state == 'win': return data_list[-1][18]
+    elif state == 'guaranteed':
+        return lose_pulls[0] + pulls
+    elif state == 'win':
+        return pulls
     
 
+def getCTW(state, total_pulls, pulls_spent):
+    if state == 'lose':
+        lose_pulls[1] = total_pulls
+        return 'N/A'
+    
+    if pulls_spent == 0 and state == 'win': 
+        total = int(data_list[-1][19]) + total_pulls
+        data_list[-1][19] = total
+        print(data_list[-1][6], data_list[-1][19])
+        return total
+    elif state == 'guaranteed':
+        return lose_pulls[1] + total_pulls
+    elif state == 'win':
+        return total_pulls
+
+
 data_list = []
+lose_pulls = [0, 0] # [Cw, CTw]
 def cleanData():
     for id in data.index.tolist():
         if id:
@@ -68,6 +100,7 @@ def cleanData():
             for banner, details in histories.items():
                 expenses = details['expenses']
                 action = details['action']
+                pullBanner = expenses['pullsSpent']
                 banner_meta = ban_info[banner]
 
                 items = details.get('item', [])
@@ -75,16 +108,32 @@ def cleanData():
                     data_list.append([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']),
                                     banner, *banner_meta, 
                                     action, 0, 
-                                    'N/A', getCarryState('N/A', data_list[-1] if data_list else None) ])
+                                    'N/A', getCarryState('N/A', data_list[-1] if data_list else None),
+                                    'N/A', #data_list[-1][15] if data_list else 0, # ask if Pity' from previous entry should be considered
+                                    pullBanner, 'N/A', 'N/A', # pulls spent, P(5*), C(T)
+                                    'N/A', 
+                                    'N/A'
+                                    ])
                 else:                    
                     data_list.extend([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']), 
                                         banner, *banner_meta,
                                         action, getStatus(item), 
-                                        item['status'], getCarryState(item['status'], data_list[-1])] for item in items
+                                        item['status'], getCarryState(item['status'], data_list[-1]),
+                                        item['extraPity'], item['totalPulls'], item['pity'], # P', C, P(5*)
+                                        getTotPullSpent(item['extraPity'], item['totalPulls']), 
+                                        getCW(item['status'], item['totalPulls']),
+                                        getCTW(item['status'], getTotPullSpent(item['extraPity'], item['totalPulls']), item['totalPulls'])
+                                        ] for item in items
                                         )
                 
-
+column_list = ["ID", "IGN", "Group", "Category", "Pulls Saved", 
+                        "Banner Name", "Character Name", "Class", "Tier", "Gender",
+                        "Action", "Status",
+                        "Reward State", "G'",
+                        "Pity", "Pulls Spent", "Pity 5-Star", "Total Pulls Spent", "Win Pulls", "Total Win Pulls",
+                        "Boss"]
 cleanData()
+print(column_list)
 print(*data_list, sep="\n")
 # data_dict = {
 #     "ID": data.index.tolist(),

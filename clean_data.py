@@ -4,14 +4,6 @@ import math
 import csv
 import banner_info as bi
 
-# with open('example.csv', 'w') as file:
-#     csv_writer = csv.writer(file)
-#     csv_writer.writerow(["ID", "IGN", "Group", "Category", "Pulls Saved", 
-#                         "Banner Name", "Character Name", "Class", "Tier", "Gender",
-#                         "Action", "Status",
-#                         "Reward State", "G'",
-#                         "Pity", "Pulls Spent", "Pity 5-Star", "Total Pulls Spent", "Win Pulls", "Total Win Pulls",
-#                         "Boss"])
 
 ban_info = bi.banner_order
 
@@ -100,6 +92,7 @@ def cleanData():
             for banner, details in histories.items():
                 expenses = details['expenses']
                 action = details['action']
+                boss = details['defeat']
                 pullBanner = expenses['pullsSpent']
                 banner_meta = ban_info[banner]
 
@@ -112,7 +105,8 @@ def cleanData():
                                     'N/A', #data_list[-1][15] if data_list else 0, # ask if Pity' from previous entry should be considered
                                     pullBanner, 'N/A', 'N/A', # pulls spent, P(5*), C(T)
                                     'N/A', 
-                                    'N/A'
+                                    'N/A', 
+                                    boss # ask if per item ba ibutang ang value sa boss. 
                                     ])
                 else:                    
                     data_list.extend([id, data.loc[id, 'ign'], 'group', data.loc[id, 'group'], getPulls(expenses['startBalance']), 
@@ -122,8 +116,8 @@ def cleanData():
                                         item['extraPity'], item['totalPulls'], item['pity'], # P', C, P(5*)
                                         getTotPullSpent(item['extraPity'], item['totalPulls']), 
                                         getCW(item['status'], item['totalPulls']),
-                                        getCTW(item['status'], getTotPullSpent(item['extraPity'], item['totalPulls']), item['totalPulls'])
-                                        ] for item in items
+                                        getCTW(item['status'], getTotPullSpent(item['extraPity'], item['totalPulls']), item['totalPulls']),
+                                        boss ] for item in items
                                         )
                 
 column_list = ["ID", "IGN", "Group", "Category", "Pulls Saved", 
@@ -135,6 +129,17 @@ column_list = ["ID", "IGN", "Group", "Category", "Pulls Saved",
 cleanData()
 print(column_list)
 print(*data_list, sep="\n")
+
+with open('example.csv', 'w', newline='') as file:
+    csv_writer = csv.writer(file)
+    csv_writer.writerow(["ID", "IGN", "Group", "Category", "Pulls Saved", 
+                        "Banner Name", "Character Name", "Class", "Tier", "Gender",
+                        "Action", "Status",
+                        "Reward State", "G'",
+                        "Pity", "Pulls Spent", "Pity 5-Star", "Total Pulls Spent", "Win Pulls", "Total Win Pulls",
+                        "Boss"])
+    for row in data_list:
+        csv_writer.writerow(row)
 # data_dict = {
 #     "ID": data.index.tolist(),
 #     "IGN": data['ign'].tolist(),
